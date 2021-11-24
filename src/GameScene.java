@@ -3,7 +3,14 @@ import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -14,8 +21,12 @@ import java.util.Random;
 public class GameScene extends Scene {
     public Camera camera;                       // camera
     private Group parent;                       // for constructor
+
     private staticThing left;                   // left background image
     private staticThing right;                  // right background image
+    private staticThing frontFirst;
+    private staticThing frontSecond;
+    private staticThing frontThird;
     private staticThing hearts;                 // lives
 
     private Hero hero;
@@ -25,6 +36,7 @@ public class GameScene extends Scene {
 
     private int numberOfLives;                  // life counter
     private int score;                          // current score
+    private Text scoreText;
 
     private long lastTime=0;
 
@@ -49,7 +61,6 @@ public class GameScene extends Scene {
 
             camera.update(elapsedTime);
             lastTime=time;
-            //render(time);
             updateGS(time);
 
             System.out.println(hero.getInvincibility());
@@ -68,9 +79,27 @@ public class GameScene extends Scene {
 
         numberOfLives = 3;
 
+        score = 0;
+        scoreText= new Text();
+        scoreText.setX(400);
+        scoreText.setText("SCORE = "+score);
+        scoreText.setY(30);
+        scoreText.setFill(Color.WHITE);
+        scoreText.setFont(Font.font("impact", FontWeight.BOLD, FontPosture.REGULAR, 20));
+        scoreText.setId("fancytext");
 
-        left = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\desert.png",400,800);
-        right = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\desert.png",400,800);
+
+        left = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\backgroundMMX2.png",400,800);
+        right = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\backgroundMMX2.png",400,800);
+
+        frontFirst = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\firstbg4.png",250,400);
+        frontSecond = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\firstbg4.png",250,200);
+        frontThird = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\firstbg4.png",250,400);
+
+        Image ground = new Image(new File("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\groundgif.gif").toURI().toString());
+        ImageView groundGif = new ImageView(ground);
+
+
         hearts = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\healthbar2.png", 476, 845 );
 
         hero = new Hero(200, 300, 100000000, "C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\heros.png" );
@@ -80,8 +109,16 @@ public class GameScene extends Scene {
 
         parent.getChildren().add(left.getViewBack());
         parent.getChildren().add(right.getViewBack());
+        left.getViewBack().setY(-50);
+        right.getViewBack().setY(-50);
+        parent.getChildren().add(groundGif);
+        groundGif.setY(300);
+        parent.getChildren().add(frontFirst.getViewBack());
+        parent.getChildren().add(frontSecond.getViewBack());
+        parent.getChildren().add(frontThird.getViewBack());
         parent.getChildren().add(hero.getAnimatedView());
         parent.getChildren().add(hearts.getViewBack());
+        parent.getChildren().add(scoreText);
 
         for (Foe sfoe: foeList)
         {
@@ -96,9 +133,17 @@ public class GameScene extends Scene {
     }
 
     public void screen(){
-        double offset = (0.8*camera.getX())%left.getWidth();
-        left.getViewBack().setViewport(new Rectangle2D(offset, 0, left.getWidth()-offset, left.getHeight()));
-        right.getViewBack().setX(left.getWidth()-offset);
+        // for a parallax effect we put different values of offsets.
+
+        double offset1 = (0.1*camera.getX())%left.getWidth();
+        left.getViewBack().setViewport(new Rectangle2D(offset1, 0, left.getWidth()-offset1, left.getHeight()));
+        right.getViewBack().setX(left.getWidth()-offset1);
+
+        double offset2 = (0.3*camera.getX())%frontFirst.getWidth();
+        frontFirst.getViewBack().setViewport(new Rectangle2D(offset2, 0, frontFirst.getWidth()-offset2, frontFirst.getHeight()));
+        frontFirst.getViewBack().setY(50);
+        frontSecond.getViewBack().setX(frontFirst.getWidth()-offset2); frontSecond.getViewBack().setY(50);
+        frontThird.getViewBack().setX(2*frontFirst.getWidth()-offset2); frontThird.getViewBack().setY(50);
     }
 
 
@@ -113,6 +158,7 @@ public class GameScene extends Scene {
         startRunning();
         jump();
         followHero();
+        updateScore();
 
         for (Foe ufoe : foeList) {
             ufoe.update(time, camera);
@@ -183,6 +229,11 @@ public class GameScene extends Scene {
         }
         hearts.getViewBack().setX(10);
         hearts.getViewBack().setY(10);
+    }
+
+    public void updateScore(){
+        score=(int)((hero.getX()-200)/100);
+        scoreText.setText("SCORE= "+score);
     }
 
     public void writeFile(String filename, int text)
