@@ -12,11 +12,10 @@ import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Scanner;
 
 public class GameScene extends Scene {
     public Camera camera;                       // camera
@@ -28,15 +27,18 @@ public class GameScene extends Scene {
     private staticThing frontSecond;
     private staticThing frontThird;
     private staticThing hearts;                 // lives
+    private staticThing pressKey;
+
+    private staticThing gameOver;
+    private Image spark;
+    private ImageView sparkGif;
 
     private Hero hero;
-
-    private Button retryB;                      // to start over a run
-    private Button homeB;                       // to exit the run
 
     private int numberOfLives;                  // life counter
     private int score;                          // current score
     private Text scoreText;
+    private Text hiScore;
 
     private long lastTime=0;
 
@@ -62,9 +64,6 @@ public class GameScene extends Scene {
             camera.update(elapsedTime);
             lastTime=time;
             updateGS(time);
-
-            System.out.println(hero.getInvincibility());
-            System.out.println(hero.isInvincible());
         }
     };
 
@@ -81,13 +80,18 @@ public class GameScene extends Scene {
 
         score = 0;
         scoreText= new Text();
-        scoreText.setX(400);
-        scoreText.setText("SCORE = "+score);
+        scoreText.setX(350);
+        scoreText.setText("SCORE  =  "+score);
         scoreText.setY(30);
-        scoreText.setFill(Color.WHITE);
+        scoreText.setFill(Color.DARKVIOLET);
         scoreText.setFont(Font.font("impact", FontWeight.BOLD, FontPosture.REGULAR, 20));
-        scoreText.setId("fancytext");
 
+        hiScore= new Text();
+        hiScore.setX(600);
+        hiScore.setText("HIGH SCORE  =  "+getHighScore());
+        hiScore.setY(30);
+        hiScore.setFill(Color.BLUEVIOLET);
+        hiScore.setFont(Font.font("impact", FontWeight.BOLD, FontPosture.REGULAR, 20));
 
         left = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\backgroundMMX2.png",400,800);
         right = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\backgroundMMX2.png",400,800);
@@ -104,6 +108,13 @@ public class GameScene extends Scene {
 
         hero = new Hero(200, 300, 100000000, "C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\heros.png" );
 
+        gameOver = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\gameover.png",360,640);
+        pressKey = new staticThing("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\presskey3.png",80,293);
+
+        spark = new Image(new File("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\spark.gif").toURI().toString());
+        sparkGif = new ImageView(spark);
+
+
         Random r = new Random();
         createFoes(r);
 
@@ -119,6 +130,14 @@ public class GameScene extends Scene {
         parent.getChildren().add(hero.getAnimatedView());
         parent.getChildren().add(hearts.getViewBack());
         parent.getChildren().add(scoreText);
+        parent.getChildren().add(hiScore);
+        parent.getChildren().add(gameOver.getViewBack());
+        parent.getChildren().add(pressKey.getViewBack());
+        parent.getChildren().add(sparkGif);
+        sparkGif.setImage(null);
+
+        gameOver.hideImage();
+        pressKey.hideImage();
 
         for (Foe sfoe: foeList)
         {
@@ -171,9 +190,7 @@ public class GameScene extends Scene {
         if (hero.getAttitude()==0) {
             this.setOnKeyPressed(ev -> {
                 if (ev.getCode() == KeyCode.ENTER) {
-                    //System.out.println("RUN");
                     hero.run();
-
                 }
             });
         }
@@ -182,11 +199,29 @@ public class GameScene extends Scene {
         if (hero.getAttitude()==1) {
             this.setOnKeyPressed(ev -> {
                 if (ev.getCode() == KeyCode.SPACE) {
-                    System.out.println("JUMP");
                     hero.jump();
                 }
             });
         }
+    }
+
+    public void tryAgain(){
+        this.setOnKeyPressed(ev -> {
+                hero.tryAgain();
+                timer.start();
+                camera.startAgain();
+                gameOver.hideImage();
+                pressKey.hideImage();
+                sparkGif.setImage(null);
+                hiScore.setText("HIGH SCORE  =  "+getHighScore());
+                numberOfLives=3;
+                Random r = new Random();
+                min_dist = 300;
+                createFoes(r);
+                for (Foe sfoe: foeList){
+                    parent.getChildren().add(sfoe.getAnimatedView());
+                }
+        });
     }
 
     public void createFoes(Random r){
@@ -202,10 +237,12 @@ public class GameScene extends Scene {
     public void checkCollision(Foe foe){
         if (!hero.isInvincible()){        // only check collision when hero is vulnerable
             if (hero.getHitBox().intersects(foe.getHitBox())) {
-                if (numberOfLives > 0) {
-                    hero.setInvincibility(200);
+                if (numberOfLives > 1) {
+                    hero.setInvincibility(300);
                     numberOfLives--;
                 }else{                  // you lose your last life -> GAME OVER
+                    numberOfLives--;
+                    displayLives();
                     gameOver();
                 }
             }
@@ -221,9 +258,15 @@ public class GameScene extends Scene {
                 hearts.getViewBack().setViewport(new Rectangle2D(147, 352, 137, 35));
                 break;
             case 1:
-                hearts.getViewBack().setViewport(new Rectangle2D(147, 394, 137, 35));
+                if (camera.getX()%300 < 150) {
+                    hearts.showImage();
+                    hearts.getViewBack().setViewport(new Rectangle2D(147, 394, 137, 35));
+                }else{
+                    hearts.hideImage();
+                }
                 break;
             case 0:            // game over
+                hearts.showImage();
                 hearts.getViewBack().setViewport(new Rectangle2D(147, 437, 137, 38));
                 break;
         }
@@ -232,8 +275,17 @@ public class GameScene extends Scene {
     }
 
     public void updateScore(){
-        score=(int)((hero.getX()-200)/100);
+        score=(int)((hero.getX()-200)/10);
         scoreText.setText("SCORE= "+score);
+    }
+
+    public int getHighScore() {
+        try {
+            Scanner scanner = new Scanner(new File("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\high_score.txt"));
+            return (scanner.nextInt());
+        } catch (IOException e){
+            return 0;
+        }
     }
 
     public void writeFile(String filename, int text)
@@ -242,9 +294,7 @@ public class GameScene extends Scene {
             File myObj = new File(filename);
             if (myObj.createNewFile()) {
                 System.out.println("File created: " + myObj.getName());
-            } else {
-                System.out.println("File already exists.");
-            }
+            } else {} //nothing happens (no need to specify it already exists)
         } catch (IOException e) {
             System.out.println("An error occurred.");
             e.printStackTrace();
@@ -253,16 +303,42 @@ public class GameScene extends Scene {
             FileWriter myWriter = new FileWriter(filename);
             myWriter.write(""+text);
             myWriter.close();
-            System.out.println("Successfully wrote to the file.");
+            System.out.println("Updated high score.");
         } catch (IOException e) {
-            System.out.println("An error occurred.");
+            System.out.println("An error occurred. Couldn't save the score...");
             e.printStackTrace();
         }
     }
 
     public void gameOver(){
         timer.stop();
+        gameOver.getViewBack().setX(80);
+        gameOver.showImage();
+        pressKey.getViewBack().setX(253);
+        pressKey.getViewBack().setY(290);
+        pressKey.showImage();
+
+        sparkGif.setX(150); sparkGif.setY(53);
+        sparkGif.setImage(spark);
+
+        Image spark = new Image(new File("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\spark.gif").toURI().toString());
+        ImageView sparkGif = new ImageView(spark);
+
+
+
+
         System.out.println("Game Over");
-        writeFile("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\high_score.txt",score);
+        if (getHighScore() < score) writeFile("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\high_score.txt",score);
+        clearFoes();
+        tryAgain();
+    }
+
+    public void clearFoes(){
+        for (Foe sfoe: foeList)
+        {
+            sfoe.getAnimatedView().setViewport(new Rectangle2D(0,0,1,1));
+        }
+
+        foeList = null;
     }
 }

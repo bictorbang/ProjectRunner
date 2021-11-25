@@ -9,7 +9,6 @@ abstract public class AnimatedThing {
 
     private long invincibility = 0;
 
-    //Image imInv;
     private ImageView animatedView;
 
     //private ImageView invincible; // invincible png
@@ -65,11 +64,9 @@ abstract public class AnimatedThing {
         else return false;
     }
 
-/*
-    public ImageView getInvincible() {
-        return invincible;
+    public void setSprite(int index){
+        animatedView.setViewport(new Rectangle2D(indexX[index],indexY[index],indexW[index],indexH[index]));
     }
-     */
 
     public AnimatedThing(double x, double y, double dt, String filename/*,String filename2*/){
         this.x = x;
@@ -88,7 +85,7 @@ abstract public class AnimatedThing {
         setHindexes();
         setWindexes();
 
-        animatedView.setViewport(new Rectangle2D(indexX[index],indexY[index],indexW[index],indexH[index]));
+        setSprite(index);
 
 
     }
@@ -99,7 +96,7 @@ abstract public class AnimatedThing {
         if (attitude!=0) {
             if (attitude == 1) {
                 index = (int) (((time / dt)) % (indexMax - 1));
-                animatedView.setViewport(new Rectangle2D(indexX[index],indexY[index],indexW[index],indexH[index]));
+                setSprite(index);
             }
             if (x > 4000) {
                 this.ax = (int) (x / 4000);
@@ -127,7 +124,10 @@ abstract public class AnimatedThing {
 
         this.hitbox = getHitBox();
 
-        if (this.isInvincible()) this.setInvincibility(this.getInvincibility()-1);
+        if (this.isInvincible()){
+            this.setInvincibility(this.getInvincibility()-1);
+            this.hitAnimation(this.getInvincibility());
+        }
 
 
     }
@@ -148,6 +148,13 @@ abstract public class AnimatedThing {
             if (y == 300) this.vy = -Math.sqrt(2 * 150 * this.g);
             vy = -0.75;
         }
+    }
+
+    public void tryAgain(){
+        x=200;
+        y=300;
+        attitude=0;
+        setSprite(0);
     }
 
     void setXindexes(){
@@ -191,6 +198,26 @@ abstract public class AnimatedThing {
             return (new Rectangle2D(this.getAnimatedView().getX(),this.getAnimatedView().getY(),indexW[index],indexH[index]));
         }else{  // hero is jumping
             return (new Rectangle2D(this.getAnimatedView().getX(),this.getAnimatedView().getY(),45,96));
+        }
+    }
+
+    public void hitAnimation(long value){
+        if (value > 200){
+            if (value%20 < 10){
+                this.animatedView.setViewport(new Rectangle2D(0,0,1,1));
+            }
+        }else if(value > 100){
+            if (value%10 < 5){
+                this.animatedView.setViewport(new Rectangle2D(0,0,1,1));
+            }
+        }else if (value > 50){
+            if (value%6 < 3){
+                this.animatedView.setViewport(new Rectangle2D(0,0,1,1));
+            }
+        }else{
+            if (value%2 < 1){
+                this.animatedView.setViewport(new Rectangle2D(0,0,1,1));
+            }
         }
     }
 

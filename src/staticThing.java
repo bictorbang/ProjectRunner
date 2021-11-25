@@ -20,4 +20,11 @@ public class staticThing {
 
     public double getWidth() { return width; }
 
+    public void showImage(){
+        viewBack.setImage(staticImage);
+    }
+    public void hideImage(){
+        viewBack.setImage(null);
+    }
+
 }
