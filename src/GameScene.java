@@ -2,17 +2,20 @@ import javafx.animation.AnimationTimer;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.util.Duration;
 
 import java.io.*;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Random;
 import java.util.Scanner;
@@ -39,6 +42,7 @@ public class GameScene extends Scene {
     private int score;                          // current score
     private Text scoreText;
     private Text hiScore;
+    private Text speed;
 
     private long lastTime=0;
 
@@ -114,6 +118,12 @@ public class GameScene extends Scene {
         spark = new Image(new File("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\spark.gif").toURI().toString());
         sparkGif = new ImageView(spark);
 
+        speed= new Text();
+        speed.setX(400);
+        speed.setY(60);
+        speed.setFill(Color.DEEPSKYBLUE);
+        speed.setFont(Font.font("impact", FontWeight.MEDIUM, FontPosture.ITALIC, 10));
+        speed.setVisible(false);
 
         Random r = new Random();
         createFoes(r);
@@ -131,6 +141,7 @@ public class GameScene extends Scene {
         parent.getChildren().add(hearts.getViewBack());
         parent.getChildren().add(scoreText);
         parent.getChildren().add(hiScore);
+        parent.getChildren().add(speed);
         parent.getChildren().add(gameOver.getViewBack());
         parent.getChildren().add(pressKey.getViewBack());
         parent.getChildren().add(sparkGif);
@@ -147,6 +158,9 @@ public class GameScene extends Scene {
         camera = new Camera(0, 50, hero);
 
         timer.start();
+
+        gamesound();
+        bgm.stop();
 
 
     }
@@ -178,6 +192,7 @@ public class GameScene extends Scene {
         jump();
         followHero();
         updateScore();
+        displaySpeed();
 
         for (Foe ufoe : foeList) {
             ufoe.update(time, camera);
@@ -185,12 +200,30 @@ public class GameScene extends Scene {
         }
     }
 
-    public void startRunning()
-    {
+
+    public void displaySpeed(){
+        if (hero.getSpeedText()>0) {
+            if (hero.getSpeedText() % 20 > 10) {
+                if(hero.getaX() == 10){
+                    speed.setText("MAX GRAVITY !!!!");
+                }else{
+                    speed.setText("Gravity increased !!! (" + (int) (hero.getaX()) + "/10)");
+                }
+                speed.setVisible(true);
+            } else {
+                speed.setVisible(false);
+            }
+        }
+    }
+
+    public void startRunning() {
         if (hero.getAttitude()==0) {
             this.setOnKeyPressed(ev -> {
                 if (ev.getCode() == KeyCode.ENTER) {
                     hero.run();
+                    startsound();
+                    if (!bgm.getStatus().equals(MediaPlayer.Status.PLAYING))
+                    gamesound();
                 }
             });
         }
@@ -198,8 +231,9 @@ public class GameScene extends Scene {
     public void jump(){
         if (hero.getAttitude()==1) {
             this.setOnKeyPressed(ev -> {
-                if (ev.getCode() == KeyCode.SPACE) {
+                if (ev.getCode() == KeyCode.SPACE && hero.getAttitude() == 1) {
                     hero.jump();
+                    jumpsound();
                 }
             });
         }
@@ -208,6 +242,7 @@ public class GameScene extends Scene {
     public void tryAgain(){
         this.setOnKeyPressed(ev -> {
                 hero.tryAgain();
+                retrysound();
                 timer.start();
                 camera.startAgain();
                 gameOver.hideImage();
@@ -237,6 +272,8 @@ public class GameScene extends Scene {
     public void checkCollision(Foe foe){
         if (!hero.isInvincible()){        // only check collision when hero is vulnerable
             if (hero.getHitBox().intersects(foe.getHitBox())) {
+                hitsound();
+                if (numberOfLives == 2) alertsound();
                 if (numberOfLives > 1) {
                     hero.setInvincibility(300);
                     numberOfLives--;
@@ -244,6 +281,7 @@ public class GameScene extends Scene {
                     numberOfLives--;
                     displayLives();
                     gameOver();
+                    if (getHighScore() > score) losesound();
                 }
             }
         }
@@ -321,14 +359,12 @@ public class GameScene extends Scene {
         sparkGif.setX(150); sparkGif.setY(53);
         sparkGif.setImage(spark);
 
-        Image spark = new Image(new File("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\spark.gif").toURI().toString());
-        ImageView sparkGif = new ImageView(spark);
-
-
-
-
         System.out.println("Game Over");
-        if (getHighScore() < score) writeFile("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\high_score.txt",score);
+        if (getHighScore() < score){
+            winsound();
+            newHiScoresound();
+            writeFile("C:\\Users\\rotci\\IdeaProjects\\ProjectRunner\\runner_img\\high_score.txt",score);
+        }
         clearFoes();
         tryAgain();
     }
@@ -341,4 +377,69 @@ public class GameScene extends Scene {
 
         foeList = null;
     }
+
+    MediaPlayer bgm;
+    public void gamesound(){
+        Media h=new Media(Paths.get("runner_music/MiamiNights1984.mp3").toUri().toString());
+        bgm= new MediaPlayer(h);
+        bgm.setOnEndOfMedia(() -> bgm.seek(Duration.ZERO));
+        bgm.play();
+    }
+
+    MediaPlayer startsfx;
+    public void startsound(){
+        Media h = new Media(Paths.get("runner_music/startsfx.wav").toUri().toString());
+        startsfx = new MediaPlayer(h);
+        startsfx.play();
+    }
+
+    MediaPlayer jumpsfx;
+    public void jumpsound(){
+        Media h = new Media(Paths.get("runner_music/jumpsfx.wav").toUri().toString());
+        jumpsfx = new MediaPlayer(h);
+        jumpsfx.play();
+    }
+
+    MediaPlayer hitsfx;
+    public void hitsound(){
+        Media h = new Media(Paths.get("runner_music/hitsfx.wav").toUri().toString());
+        hitsfx = new MediaPlayer(h);
+        hitsfx.play();
+    }
+
+    MediaPlayer alertsfx;
+    public void alertsound(){
+        Media h = new Media(Paths.get("runner_music/alertsfx.wav").toUri().toString());
+        alertsfx = new MediaPlayer(h);
+        alertsfx.play();
+    }
+
+    MediaPlayer losesfx;
+    public void losesound(){
+        Media h = new Media(Paths.get("runner_music/losesfx.wav").toUri().toString());
+        losesfx = new MediaPlayer(h);
+        losesfx.play();
+    }
+
+    MediaPlayer retrysfx;
+    public void retrysound(){
+        Media h = new Media(Paths.get("runner_music/retrysfx.wav").toUri().toString());
+        retrysfx = new MediaPlayer(h);
+        retrysfx.play();
+    }
+
+    MediaPlayer newHiScoresfx;
+    public void newHiScoresound(){
+        Media h = new Media(Paths.get("runner_music/newHiScoresfx.mp3").toUri().toString());
+        newHiScoresfx = new MediaPlayer(h);
+        newHiScoresfx.play();
+    }
+
+    MediaPlayer winsfx;
+    public void winsound(){
+        Media h = new Media(Paths.get("runner_music/winsfx.wav").toUri().toString());
+        winsfx = new MediaPlayer(h);
+        winsfx.play();
+    }
+
 }

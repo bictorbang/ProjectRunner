@@ -5,8 +5,6 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
 public class Main extends Application {
@@ -14,13 +12,9 @@ public class Main extends Application {
         @Override
         public void start(Stage primaryStage) throws Exception{
 
-            primaryStage.setTitle("RUNNER 2077");
+            primaryStage.setTitle("RUNNER 2077 by Victor WANG");
             Group rootGame = new Group();
             Group rootHome = new Group();
-            //root.getChildren().add(sprite);
-           // Pane pane = new Pane(root);
-            //Scene theScene = new Scene(pane, 600, 400,true);
-           // primaryStage.setScene(theScene);
 
             GameScene gs = new GameScene(rootGame,800,400);
             HomeScene hs = new HomeScene(rootHome);
@@ -29,13 +23,12 @@ public class Main extends Application {
 
             hs.setOnKeyPressed(ev -> {
                 if (ev.getCode() == KeyCode.SPACE) {
+                    hs.clicksound();
+                    hs.stopBGM();
+                    hs.timer.stop();
                     primaryStage.setScene(gs);
                 }
             });
-
-            //primaryStage.getScene().setOnKeyPressed(ev -> {
-
-            //        });
 
 
             primaryStage.setResizable(false);

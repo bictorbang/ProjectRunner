@@ -1,17 +1,15 @@
 import javafx.geometry.Rectangle2D;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.shape.Rectangle;
 
 abstract public class AnimatedThing {
     double x,y;                     // position
     private Integer attitude;       // 0 = stop, 1 = running, 2 = jumping
 
     private long invincibility = 0;
+    private long speedText = 0;
 
     private ImageView animatedView;
-
-    //private ImageView invincible; // invincible png
 
     private int index;              // index
     private double dt;              // duration between two frames
@@ -43,6 +41,13 @@ abstract public class AnimatedThing {
         return y;
     }
 
+    public double getvY() {return vy;}
+    public double getaX(){return ax;}
+
+
+    public long getSpeedText(){return speedText;};
+    public void setSpeedText(long value){this.speedText = value;}
+
     public int getAttitude() {
         return attitude;
     }
@@ -68,12 +73,10 @@ abstract public class AnimatedThing {
         animatedView.setViewport(new Rectangle2D(indexX[index],indexY[index],indexW[index],indexH[index]));
     }
 
-    public AnimatedThing(double x, double y, double dt, String filename/*,String filename2*/){
+    public AnimatedThing(double x, double y, double dt, String filename){
         this.x = x;
         this.y = y;
         this.animatedView =new ImageView(new Image(filename));
-        //imInv=new Image(filename2);
-        //this.invincible= new ImageView(imInv);
         attitude=0; //still
         index=0;
         invIndex=0;
@@ -98,12 +101,16 @@ abstract public class AnimatedThing {
                 index = (int) (((time / dt)) % (indexMax - 1));
                 setSprite(index);
             }
-            if (x > 4000) {
-                this.ax = (int) (x / 4000);
+            // this part makes the hero jump less higher the longer the run. It is capped so that it remains possible
+            // to jump past enemies at full speed
+            if (x > 6000 && ax < 10 && this.speedText == 0) {
+                int temp = (int) (x/6000);
+                if(temp != this.ax) this.speedText = 300;
+                this.ax = temp;
             }
-            this.vx = 0.5 + ax / 100; //50
+            this.vx = 0.5 + ax / 100;
             this.x += this.vx * elapsedTime;
-            g = 2 * 150 / (Math.pow(200 / vx, 2)); //300
+            g = 2 * 150 / (Math.pow(200 / vx, 2));
         }
 
         if (attitude==2) {
@@ -129,6 +136,8 @@ abstract public class AnimatedThing {
             this.hitAnimation(this.getInvincibility());
         }
 
+        if (this.getSpeedText()>0) this.setSpeedText(this.getSpeedText()-1);
+
 
     }
 
@@ -138,14 +147,13 @@ abstract public class AnimatedThing {
     }
 
     public void run() {
-        this.attitude=1;
+        if (this.attitude != 1 && y == 300) this.attitude=1;
     }
 
     public void jump() {
         if (this.attitude != 2) {
             this.attitude = 2;
-            //sound();
-            if (y == 300) this.vy = -Math.sqrt(2 * 150 * this.g);
+            if (y == 300)
             vy = -0.75;
         }
     }
@@ -153,6 +161,7 @@ abstract public class AnimatedThing {
     public void tryAgain(){
         x=200;
         y=300;
+        ax = 0;
         attitude=0;
         setSprite(0);
     }

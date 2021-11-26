@@ -36,7 +36,7 @@ public class Camera {
 
 
     public void startAgain(){
-        x=300;
+        x=200;
     }
 
 
@@ -44,7 +44,6 @@ public class Camera {
         ax=(focus.getX()-x)*k-(f*vx);
         vx=vx+ax*time;
         x=x+vx*time;
-        //System.out.println("Camera pos : "+x +" vx : "+vx+" ax : "+ax+" time ="+time);
 
     }
 
